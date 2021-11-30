@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<button id="start">Start</button>
+<pre id="out">
+
+</pre>
+
+<script>
+function sleep(timeoutMs) {
+  return new Promise(resolve => setTimeout(resolve, timeoutMs));
+}
+
+async function initialize() {
+  const cameraStream = await navigator.mediaDevices.getUserMedia({
+    'audio': false,
+    'video': {"advanced":[{"frameRate":{"min":24}},{"height":{"min":720}},{"width":{"min":1280}},{"frameRate":{"max":24}},{"width":{"max":1280}},{"height":{"max":720}},{"aspectRatio":{"exact":1.7777777777777777}}]},
+  });
+  const track = cameraStream.getVideoTracks()[0];
+  document.getElementById('out').append(`settings: ${JSON.stringify(track.getSettings())}\n`);
+  readFrames(track);
+  grabFrames(track);
+}
+
+async function readFrames(track) {
+  const video = document.createElement('video');
+  video.srcObject = new MediaStream([track]);
+  await video.play();
+  let lastTimestamp = Number.NEGATIVE_INFINITY;
+  let count = 0;
+  while (true) {
+    const timestamp = video.currentTime;
+    if (lastTimestamp > timestamp) {
+      document.getElementById('out').append(
+        `Video timestamp ${timestamp} < ${lastTimestamp}\n`);
+    }
+    if (lastTimestamp !== timestamp) {
+      lastTimestamp = timestamp;
+      count++;
+      if (count % 1500 === 0) {
+        document.getElementById('out').append(`${count} frames read\n`);
+      }
+    }
+    await sleep(13);
+  }
+}
+
+async function grabFrames(track) {
+  const capture = new ImageCapture(track);
+  let count = 0;
+  while (true) {
+    const ib = await capture.grabFrame();
+    ib.close();
+    count++
+    if (count % 200 === 0) {
+      document.getElementById('out').append(`${count} frames grabbed\n`);
+    }
+    await sleep(300);
+  }
+}
+
+document.getElementById('start').onclick = initialize;
+</script>
