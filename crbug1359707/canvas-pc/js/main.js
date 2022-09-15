@@ -20,6 +20,17 @@ callButton.addEventListener('click', call);
 hangupButton.addEventListener('click', hangup);
 
 const codecPreferences = document.querySelector('#codecPreferences');
+    const {codecs} = RTCRtpSender.getCapabilities('video');
+    codecs.forEach(codec => {
+      if (['video/red', 'video/ulpfec', 'video/rtx'].includes(codec.mimeType)) {
+        return;
+      }
+      const option = document.createElement('option');
+      option.value = (codec.mimeType + ' ' + (codec.sdpFmtpLine || '')).trim();
+      option.innerText = option.value;
+      codecPreferences.appendChild(option);
+    });
+    codecPreferences.disabled = false;
 
 let pc1;
 let pc2;
@@ -95,7 +106,7 @@ function call() {
       codecs.splice(selectedCodecIndex, 1);
       codecs.unshift(selectedCodec);
       console.log(codecs);
-      const transceiver = pc1.getTransceivers().find(t => t.sender && t.sender.track === localStream.getVideoTracks()[0]);
+      const transceiver = pc1.getTransceivers().find(t => t.sender && t.sender.track === stream.getVideoTracks()[0]);
       transceiver.setCodecPreferences(codecs);
       console.log('Preferred video codec', selectedCodec);
     }
